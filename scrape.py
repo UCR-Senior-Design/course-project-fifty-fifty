@@ -4,8 +4,15 @@ from bs4 import BeautifulSoup
 import validators
 import time
 import csv
+#from lxml.etree import tostring
+#import lxml.html
+#https://pypi.org/project/adblockparser/
+#from adblockparser import AdblockRules
+from readability import Document
+import re
 
-asmd = pd.read_csv(r'')  # Fixed the path
+
+asmd = pd.read_csv(r'/Users/15623/Desktop/scraping/course-project-fifty-fifty/asmd_incidents.csv')  # Fixed the path
 
 asmd_link = asmd["Original Link(s)"]
 
@@ -20,33 +27,40 @@ with open(output_file, 'a+', encoding='utf-8-sig', newline='') as file:
     # Save the data to a CSV file with two columns (website and text)
     writer = csv.writer(file)
     writer.writerow(['Website', 'Text'])
-    for cell in asmd_link:  # Changed from asmd["Original Link(s)"]
-        if pd.notna(cell):  # Check if the cell is not NaN
-            # Split the cell content by semicolon to get individual URLs
+    
+    for cell in asmd_link:
+        if pd.notna(cell):
             links = cell.split(';')
             for link in links:
-                link = link.strip()  # Remove leading/trailing whitespace
+                link = link.strip()
                 if validators.url(link):
                     try:
-                        response = requests.get(link, timeout=10)  # Set the timeout to 10 seconds
-                        link_count += 1  # Increment the link count
-                        print(f'Reading link {link_count}: {link}')  # Print a visual indicator for each URL
+                        response = requests.get(link, timeout=10)
+                        link_count += 1
+                        print(f'Reading link {link_count}: {link}')
+
                         if response.status_code == 200:
                             soup = BeautifulSoup(response.text, 'html.parser')
-                            page_text = soup.get_text()
-                            text_data.append([link, page_text])  # Append URL and text to the list
+                            
+                            # Use Readability to extract the main content
+                            doc = Document(response.text)
+                            page_text = doc.summary()
 
-                            # Write the current URL and text to the CSV file immediately
+                            # Remove unwanted patterns using regular expressions
+                            ad_patterns = re.compile(r'\b(?:ad|advertisement)\b', flags=re.IGNORECASE)
+                            page_text = re.sub(ad_patterns, '', page_text)
+
+                            text_data.append([link, page_text])
                             writer.writerow([link, page_text])
 
-                            time.sleep(2)  # Sleep for 2 seconds to avoid overloading the server
+                            time.sleep(2)
                         else:
                             print(f"Invalid URL: {link}")
                     except Exception as e:
                         print(f"Error processing URL {link}: {e}")
-                        time.sleep(2)  # Sleep for 2 seconds in case of an error
+                        time.sleep(2)
                 else:
                     print(f"Invalid URL: {link}")
-                    time.sleep(2)  # Sleep for 2 seconds for invalid URLs
+                    time.sleep(2)
 
 print(f'All {link_count} links from the web pages have been read and saved to {output_file}')
