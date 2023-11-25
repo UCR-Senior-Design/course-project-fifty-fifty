@@ -4,30 +4,28 @@ from bs4 import BeautifulSoup
 import validators
 import time
 import csv
-#from lxml.etree import tostring
-#import lxml.html
-#https://pypi.org/project/adblockparser/
-#from adblockparser import AdblockRules
-from readability import Document
 import re
 
 
-asmd = pd.read_csv(r'/Users/15623/Desktop/scraping/course-project-fifty-fifty/asmd_incidents.csv')  # Fixed the path
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
+
+def cleanhtml(raw_html):
+    cleantext = re.sub(CLEANR, '', raw_html)
+    return cleantext
+
+asmd = pd.read_csv("/Users/samarthsrinivasa/Desktop/Classes/CS178A/course-project-fifty-fifty/asmd_incidents.csv")
 
 asmd_link = asmd["Original Link(s)"]
 
 text_data = []  # List to store website URL and text data
-
 link_count = 0  # Initialize link count to zero
 
-# Define the name of the output CSV file
 output_file = 'scraped_data.csv'
 
 with open(output_file, 'a+', encoding='utf-8-sig', newline='') as file:
-    # Save the data to a CSV file with two columns (website and text)
     writer = csv.writer(file)
     writer.writerow(['Website', 'Text'])
-    
+
     for cell in asmd_link:
         if pd.notna(cell):
             links = cell.split(';')
@@ -41,17 +39,19 @@ with open(output_file, 'a+', encoding='utf-8-sig', newline='') as file:
 
                         if response.status_code == 200:
                             soup = BeautifulSoup(response.text, 'html.parser')
-                            
-                            # Use Readability to extract the main content
-                            doc = Document(response.text)
-                            page_text = doc.summary()
+
+                            # Extract text using the provided HTML structure
+                            text_elements = soup.find_all('p', class_='article__paragraph')
+                            page_text = ' '.join([element.text for element in text_elements])
 
                             # Remove unwanted patterns using regular expressions
                             ad_patterns = re.compile(r'\b(?:ad|advertisement)\b', flags=re.IGNORECASE)
                             page_text = re.sub(ad_patterns, '', page_text)
 
-                            text_data.append([link, page_text])
-                            writer.writerow([link, page_text])
+                            # Remove HTML tags using the cleanhtml function
+                            cleantext = cleanhtml(page_text)
+                            text_data.append([link, cleantext])
+                            writer.writerow([link, cleantext])
 
                             time.sleep(2)
                         else:
