@@ -12,12 +12,12 @@ def cleanhtml(raw_html):
         return ''  # or another suitable default value
 
 # Read the CSV file
-input_csv_path = '/Users/samarthsrinivasa/Desktop/Classes/CS178A/course-project-fifty-fifty/scraped_data.csv'
+input_csv_path = '/Users/samarthsrinivasa/Desktop/Classes/CS178A/course-project-fifty-fifty/cleaned_dataset.csv'
 
 df = pd.read_csv(input_csv_path)
 
 # Apply cleanhtml function to the HTML data column
-df['Cleaned_Text'] = df['Text'].apply(cleanhtml)
+df['Cleaned_Text'] = df['Cleaned_Text'].apply(cleanhtml)
 
 # Save the result to a new JSON file
 output_json_path = '/Users/samarthsrinivasa/Desktop/Classes/CS178A/course-project-fifty-fifty/cleaned.json'
